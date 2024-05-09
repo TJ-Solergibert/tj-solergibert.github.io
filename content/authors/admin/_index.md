@@ -20,18 +20,18 @@ superuser: true
 role: tj.solergibert@gmail.com
 
 # Organizations/Affiliations to show in About widget
-organizations:
-  - name: Stanford University
-    url: https://www.stanford.edu/
+# organizations:
+#   - name: Stanford University
+#     url: https://www.stanford.edu/
 
 # Short bio (displayed in user profile at end of posts)
-bio: My research interests include distributed robotics, mobile computing and programmable matter.
+bio: My research interests include High Performance Computing, Large-Scale LLM Training and Distributed Applications.
 
 # Interests to show in About widget
 interests:
   - High Performance Computing
   - Large-Scale LLM Training
-#  - Distributed PyTorch Applications
+  - Distributed Applications
 
 # Education to show in About widget
 education:
@@ -94,9 +94,9 @@ social:
 #   - icon: at-symbol
 #     icon_pack: fab
 #     link: mailto:tj.solergibert@gmail.com
-  - icon: envelope
-    icon_pack: fas
-    link: '/#contact'
+#   - icon: envelope
+#     icon_pack: fas
+#     link: '/#contact'
   - icon: twitter
     icon_pack: fab
     link: https://twitter.com/TJSolergibert
@@ -121,6 +121,8 @@ highlight_name: true
 ---
 
 I'm a high-energy individual passionate about learning new things. My primary focus lies in optimizing large-scale LLM training. I thrive on experimenting with and pushing the boundaries of new state-of-the-art technologies to achieve maximum performance. I enjoy documenting my findings and sharing them with the community.
+
+Currently I'm in Lausanne doing my Master's Thesis at the MLO Lab under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My efforts are focused on the Meditron project, working on the Large-Scale training of the models.
 
 Passionate about cycling, track and field, and hiking. Don't be surprised if we ever cross paths while I'm training!
 {style="text-align: justify;"}
