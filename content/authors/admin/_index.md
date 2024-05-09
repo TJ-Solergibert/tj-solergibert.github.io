@@ -114,7 +114,7 @@ social:
     link: https://twitter.com/TJSolergibert
     label: Follow me on Twitter
     display:
-      header: true
+      header: false
 
 # Highlight the author in author lists? (true/false)
 highlight_name: true
@@ -122,7 +122,7 @@ highlight_name: true
 
 I'm a high-energy individual passionate about learning new things. My primary focus lies in optimizing large-scale LLM training. I thrive on experimenting with and pushing the boundaries of new state-of-the-art technologies to achieve maximum performance. I enjoy documenting my findings and sharing them with the community.
 
-Currently I'm in Lausanne doing my Master's Thesis at the MLO Lab under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My efforts are focused on the Meditron project, working on the Large-Scale training of the models.
+Currently I'm in Lausanne doing my Master's Thesis at the MLO Lab under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My efforts are focused on the [Meditron project](https://www.meditron.io/), working on the Large-Scale training of the models.
 
 Passionate about cycling, track and field, and hiking. Don't be surprised if we ever cross paths while I'm training!
 {style="text-align: justify;"}

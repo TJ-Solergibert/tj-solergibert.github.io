@@ -139,7 +139,7 @@ sections:
           date_start: '2024-01-01'
           date_end: ''
           description: |2-
-              Developing my master's thesis in the Meditron project under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My contributions include:
+              Carrying out my master's thesis in the [Meditron project](https://www.meditron.io/) under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My contributions include:
 
               * Develop Supervised Fine-tuning pipelines for 8B & 70B models using the Hugging Face Stack and DeepSpeed for sharding the models among several nodes
               * Develop [input data pipelines](https://github.com/huggingface/nanotron/pull/155) for our 3D parallelism codebase. The pipelines support recovering from failures, Data/Tensor/Pipeline parallelism, and include tests to verify its functionality
