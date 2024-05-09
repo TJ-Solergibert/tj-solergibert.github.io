@@ -121,7 +121,7 @@ sections:
       columns: '2'
   - block: experience
     content:
-      title: Experience
+      title: Experience & Research Projects
       # Date format for experience
       #   Refer to https://docs.hugoblox.com/customization/#date-format
       date_format: Jan 2006
@@ -131,27 +131,46 @@ sections:
       #   Leave `date_end` empty if it's your current employer.
       #   Begin multi-line descriptions with YAML's `|2-` multi-line prefix.
       items:
-        - title: CEO
-          company: GenCoin
+        - title: LLM Research Associate
+          company: EPFL, Machine Learning and Optimization Laboratory
           company_url: ''
-          company_logo: org-gc
-          location: California
-          date_start: '2021-01-01'
+        #  company_logo: org-gc
+          location: Lausanne
+          date_start: '2024-01-01'
           date_end: ''
           description: |2-
-              Responsibilities include:
+              Developing my master's thesis in the Meditron project under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My contributions include:
 
-              * Analysing
-              * Modelling
-              * Deploying
-        - title: Professor of Semiconductor Physics
-          company: University X
-          company_url: ''
-          company_logo: org-x
-          location: California
-          date_start: '2016-01-01'
-          date_end: '2020-12-31'
-          description: Taught electronic engineering and researched semiconductor physics.
+              * Develop Supervised Fine-tuning pipelines for 8B & 70B models using the Hugging Face Stack and DeepSpeed for sharding the models among several nodes
+              * Develop [input data pipelines](https://github.com/huggingface/nanotron/pull/155) for our 3D parallelism codebase. The pipelines support recovering from failures, Data/Tensor/Pipeline parallelism, and include tests to verify its functionality
+              * Conducted a scaling study of the cluster to find the optimal configuration for model training. Benchmark of the effects of activation checkpointing, different optimizers, and several types of precision, among others
+              * Optimize the software stack and develop documentation for running distributed PyTorch applications among several nodes in our cluster with the runai scheduler
+
+        - title: Computer Vision Research Associate
+          company: UPC, Image Processing Group
+          company_url: https://imatge.upc.edu/web/
+        #   company_logo: org-x
+          location: Barcelona
+          date_start: '2022-01-01'
+          date_end: '2023-3-31'
+          description: |2-
+              Member of the [UPC - Providence+](https://www.providenceplus.upc.edu/) team participating in the [XPRIZE: Rainforest competition](https://www.xprize.org/prizes/rainforest). My contributions include:
+
+              * Research of synthetic data generation techniques. Created an end-to-end pipeline to generate synthetic datasets with pixel-level segmentations based on SOTA techniques
+              * Train models to classify images between +1000 animal species with contrastive learning techniques.
+              * Accelerate model training with multiple GPUs, enabling data parallelism, developing efficient input data pipelines and mixed precision
+        - title: Network Operation Center Engineer Intern
+          company: Cellnex Telecom
+        #   company_url: ''
+        #   company_logo: org-x
+          location: Barcelona
+          date_start: '2021-04-01'
+          date_end: '2022-3-31'
+          description: |2-
+
+              * Prioritize incidents in the Cellnex network according to their impact and act remotely to avoid their impact, completing their resolution by coordinating local operations if necessary
+              * Active supervision of the Cellnex network to anticipate breakdowns
+              * Employing software for remote configuration of Cisco, NEC, Siae and Marconi equipment among others
     design:
       columns: '2'
   # - block: portfolio
