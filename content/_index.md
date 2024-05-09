@@ -152,7 +152,7 @@ sections:
         #   company_logo: org-x
           location: Barcelona
           date_start: '2022-01-01'
-          date_end: '2023-3-31'
+          date_end: '2023-03-31'
           description: |2-
               Member of the [UPC - Providence+](https://www.providenceplus.upc.edu/) team participating in the [XPRIZE: Rainforest competition](https://www.xprize.org/prizes/rainforest). My contributions include:
 
@@ -165,7 +165,7 @@ sections:
         #   company_logo: org-x
           location: Barcelona
           date_start: '2021-04-01'
-          date_end: '2022-3-31'
+          date_end: '2022-03-31'
           description: |2-
 
               * Prioritize incidents in the Cellnex network according to their impact and act remotely to avoid their impact, completing their resolution by coordinating local operations if necessary
