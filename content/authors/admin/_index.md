@@ -17,7 +17,7 @@ last_name: Solergibert
 superuser: true
 
 # Role/position/tagline
-role: Professor of Artificial Intelligence
+role: tj.solergibert@gmail.com
 
 # Organizations/Affiliations to show in About widget
 organizations:
@@ -91,9 +91,9 @@ education:
 #   For an email link, use "fas" icon pack, "envelope" icon, and a link in the
 #   form "mailto:your-email@example.com" or "/#contact" for contact widget.
 social:
-  - icon: at-symbol
-    icon_pack: fab
-    link: mailto:tj.solergibert@gmail.com
+#   - icon: at-symbol
+#     icon_pack: fab
+#     link: mailto:tj.solergibert@gmail.com
   - icon: envelope
     icon_pack: fas
     link: '/#contact'
