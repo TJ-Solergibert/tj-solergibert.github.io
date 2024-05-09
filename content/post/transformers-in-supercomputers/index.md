@@ -1,0 +1,152 @@
+---
+title: Transformers training in supercomputers with the 🤗 Stack and Slurm
+subtitle: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with the DistributedDataParallel strategy using the 🤗 Stack and Slurm
+
+# Summary for listings and search engines
+summary: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with PyTorch's DistributedDataParallel strategy using the 🤗 Stack and Slurm
+
+# Link this post with a project
+projects: []
+
+# Date published
+date: '2023-11-29T00:00:00Z'
+
+# Date updated
+lastmod: '2024-5-9T00:00:00Z'
+
+# Is this an unpublished draft?
+draft: false
+
+# Show this page in the Featured widget?
+featured: false
+
+# Featured image
+# Place an image named `featured.jpg/png` in this page's folder and customize its options here.
+image:
+  #caption: 'Image credit: [**Unsplash**](https://unsplash.com/photos/CpkOjOcXdUY)'
+  #focal_point: ''
+  #placement: 2
+  preview_only: true
+
+authors:
+  - admin
+
+tags:
+  - Transformers
+  - Accelerate
+  - Parallel Filesystems
+  - Multinode Training
+  - Distributed PyTorch
+
+# categories:
+#   - Demo
+#   - 教程
+---
+
+
+## Introduction
+In this project, we have studied data parallelism to accelerate the training of transformers, both with multiple GPUs on the same node and across multiple nodes. We have primarily analyzed the effect of three variables: Training batch size, mixed precision and evaluation batch size.
+
+All experiments were conducted using PyTorch, 🤗 Transformers for the models, 🤗 Datasets for preprocessing and injecting data into the model, 🤗 Evaluate for calculating model metrics, and 🤗 Accelerate for distributing the model training across multiple devices. We conducted the experiments on MareNostrum4 - CTE Power partition at the [Barcelona Supercomputing Center](https://www.bsc.es). This supercomputer utilized Slurm for job scheduling and resource management. The cluster is composed of 54 servers, each one containing:
+- 2 x IBM Power9 8335-GTG @ 3.00GHz (20 cores and 4 threads/core, total 160 threads per node)
+- 4 x GPU NVIDIA V100 (Volta) with 16GB HBM2.
+- 512GB of main memory distributed in 16 dimms x 32GB @ 2666MHz
+- 2 x SSD 1.9TB as local storage
+- 2 x 3.2TB NVME
+- Single Port Mellanox EDR
+- GPFS via one fiber link 10 GBit
+
+The environment in which we carried out the project is as follows:
+```
+CUDA Version: 10.2
+Driver Version: 440.33.01
+torch 1.13.0a0+git25e3331
+transformers 4.24.0
+accelerate 0.20.0
+datasets 2.0.0
+evaluate 0.4.1
+```
+
+In the execution of this project, we have primarily focused on the performance of the distributed training of the models, leaving precision or their learning capacity in the background. Nevertheless, we aimed to validate the theory by training a [DistilBERT](https://huggingface.co/distilbert-base-uncased) model on the [emotion](https://huggingface.co/datasets/dair-ai/emotion) dataset for a multi-class classification task. Below, we present the training configurations along with the results.
+
+| Number of GPUs | Batch Size | Accuracy |  Time | Speedup |
+|:--------------:|:----------:|:--------:|:-----:|:-------:|
+|        1       |     256    |  0.9375  |  60.5 |    1    |
+|        2       |     256    |   0.927  |  29.9 |  2.025  |
+|        4       |     256    |   0.941  | 16.55 |  3.655  |
+|        8       |     256    |    0.84  |  9.45 |   6.4   |
+|       16       |     256    |    0.56  |  5.83 |   10.38 |
+|        8       |     128    |    0.93  | 10.33 |   5.86  |
+|       16       |     128    |    0.90  |  6.51 |   9.3   |
+
+We conducted the experiments with an evaluation batch size of 256, a learning rate of 5e-4, and for 5 epochs. We only calculate the metric at the end of the training, and all experiments were conducted with fp16. For the cases of 8 and 16 devices, as the dataset is small, we could reduce the batch size to allow the model to update the parameters more times and converge to a better solution at the expense of slightly lengthening the training.
+
+### The Repository
+The intention of this repository is to serve as a starting point for future projects related to the training of transformers on infrastructures equipped with the Slurm job scheduler. That's why it includes the following:
+
+- Python scripts, both the [benchmark](training_benchmark.py) and the [use case](training_metric.py) presented in the introduction. Both are developed with 🤗 Accelerate to run on both a single node and multiple nodes.
+- Slurm scripts to launch jobs. Here, we differentiate between execution on [1 node](submit-multigpu.sh) and [multiple nodes](submit-multinode.sh). As in all Slurm scripts, resources must first be reserved for execution, followed by the definition of experiments. In our case, using `torchrun`, only one `task-per-node` will be executed. For the case of multiple nodes, it is necessary to include, as arguments to `torchrun`, which node will be the _master_ to [manage all communications](https://pytorch.org/docs/stable/elastic/run.html#note-on-rendezvous-backend).
+
+## Experiments
+To conduct the study, we have relied on the traditional scheme of training a model over several epochs, in which, for each epoch, the model consumes the entire training dataset to update it's parameters and calculates a metric using the evaluation dataset. Therefore, both datasets are synthetic, and we will not consider the model metrics as our focus is on the training and communication performance. More specifically, we will focus on the throughput per GPU and how the time decreases in the training and evaluation phases as we increase the number of devices.
+
+To do this, we will train a multi-class classification model with a dataset containing 32,768 training samples and 131,072 for evaluation. The metric we will calculate based on the model's predictions will be the accuracy.
+
+Note that the evaluation part will be divided into three components: A first part in which the model makes predictions of the samples of the evaluation dataset on the GPU, the metric calculation from the predictions which will be computed by only one process (the _main_ or _master_ process) on the CPU, and the broadcast of the metric to the rest of the processes.
+### Training batch size
+The training batch size refers to the number of training samples utilized in one training step. During the training, the entire dataset is divided into smaller batches, and the model is updated based on the gradients calculated from each batch. In practical terms, the choice of the batch size is a hyperparameter that may require experimentation to find the optimal value for a specific task and dataset. 
+
+In this study, we have considered batch sizes of 64, 128, and 256, as beyond 512 we encountered Out Of Memory (OOM) errors. Whenever we refer to batch size, we will be specifying the quantity per GPU involved. That is, in the case of 16 GPUs and a batch size of 256, we will have a global batch size of 4096 samples.
+### Mixed precision
+Another factor we have studied is the effect of mixed precision. We will work with fp32 and fp16, as, despite Accelerate offering the ability to work with bf16 and fp8, we cannot use them because V100 GPUs do not support them.
+### Evaluation batch size
+To make model predictions, we don't need to calculate gradients, so we will use the `torch.no_grad()` context manager, which will save us a significant amount of VRAM. This allows us to use larger evaluation batch sizes. We have studied evaluation batch sizes from 128, 256, 512, 1024, 2048 up to 4096, the maximum allowed by the GPU before incurring in OOM errors.
+## Results
+In this section, we present and analyze the results of studying all the variables mentioned in the previous section, with a total of up to 4 nodes.
+### Training Iteration
+In the training iteration, the model consumes the entire dataset to update its parameters. This operation is the most costly and is composed of 4 phases:
+1. **Forward Pass**: Each GPU performs a forward pass through the model using its local batch of data and calculates the loss.
+2. **Backward Pass**: After the forward pass, each GPU computes the gradients of the loss with respect to the model parameters using backpropagation. This involves calculating how much each parameter contributed to the error.
+3. **Gradient Aggregation**: The computed gradients from each GPU are then averaged, representing the overall direction in which the parameters should be updated to minimize the loss across all GPUs. This phase includes collective communications among all GPUs via NVLINK and NVSWITCH.
+4. **Parameter Update**: Now that all GPUs have the same aggregated gradients, they will update the parameters, and each and every process will produce the same updated model.
+
+Next, we present the results of experiments testing batch sizes of 64, 128, and 256, while enabling mixed precision.
+
+<img src="./img/Training_Iteration_Throughput.svg">
+
+In this graph, we display the throughput per device (measured in the number of samples the device can process per second) with different batch sizes and enabling mixed precision. Starting with experiments using fp32, we can observe that varying the batch size has virtually no influence on the throughput. This changes radically when working with fp16. At first glance, we notice that the throughput per device practically doubles, but the most striking aspect is that it also increases as we raise the batch size. This substantial improvement is attributed to tensor cores, a type of specialized hardware in the GPUs that accelerates matrix multiplications with reduced data types such as fp16. In general, we observe, for all six configurations, that as we increase the number of devices, the throughput decreases. This is due to the collective communications carried out to aggregate the gradients.
+
+<img src="./img/Training_Iteration_Times.svg">
+
+In this graph, we observe how what we have just discussed translates into a reduction in the time taken to consume the entire dataset. Next, we present the chart showing the speedup for each configuration compared to the case with 1 device. As we can see, the speedup up to the 8 GPU case (2 Nodes) is very close to the ideal, although when making the leap to 16 GPUs, we achieve a speedup of 10.7 for the batch size 256 - fp16 case. When working with multiple nodes, we must consider that the results may be influenced by the physical proximity of the nodes, the network topology, and even its utilization by other jobs from other users. Even though using fp32 may result in a better speedup, we will not consider it from now on, as we have clearly observed the improvements achieved by using fp16 in terms of throughput and completion times for the iteration.
+
+<img src="./img/Training_Iteration_Speedup.svg">
+
+### Evaluation Iteration
+In the evaluation phase, the model generates predictions for the samples in the evaluation dataset, and subsequently, we calculate a metric which will be broadcasted to all the processes. We have computed the model's accuracy as the metric and employed fp16 in all experiments.
+
+<img src="./img/Evaluation_Iteration_Throughput.svg">
+
+Unlike the training iteration, in the evaluation, we have observed that varying the evaluation batch size does not produce any changes in terms of throughput per device while performing the predictions. What we do observe is that as we increase the number of devices, it decreases. This is due to the way we aggregate all predictions from all devices to calculate the metric. On one hand, we perform a gather to collect all predictions, and subsequently, we write them to disk.
+
+<img src="./img/Evaluation_Iteration_Times.svg">
+
+In this graph, we can observe that varying the evaluation batch size will not affect the time taken to generate predictions. Also, in the following graph, we can see a speedup similar to that achieved in the training iteration, remaining close to the ideal up to the case of 2 nodes and achieving a speedup of 11.1 for the case with an evaluation batch size of 2048.
+
+<img src="./img/Evaluation_Iteration_Speedup.svg">
+
+<img src="./img/Compute_Metric_Times.svg">
+
+Once the predictions are generated and stored, the metric will be computed by the _main_ process with the CPU. As we can see in the graph, the evaluation batch size does not affect the time to calculate it. What does have an effect is the number of devices, as the time to calculate the metric increases as this number goes up. This increase is particularly significant, as using 8 GPUs entails approximately 7.5 seconds for the predictions and 3 seconds for metric calculation. However, when transitioning to 16 devices, we manage to reduce the prediction generation time to 4.5 seconds while observing an increase in metric calculation time to 6 seconds, so we do not observe any benefit.
+
+<img src="./img/Broadcast_Times.svg">
+
+Finally, we have analyzed the time taken to broadcast the metric to the rest of the processes. As we could expect, as we increase the number of devices, the time to perform the broadcast also increases.
+
+## Conclusions
+- As for the training iteration, we have observed the significant performance improvement of using tensor cores with fp16. It's worth noting that implementing this change requires virtually no effort from the programmer, and we achieve a speedup of approximately 2. We have also seen how setting mixed precision reduces memory consumption, so we can increase the batch size and consequently increases the throughput considerably. Finally, we have also observed that the more devices involved, the lower the throughput achieved. This is mainly due to communications between devices, and in our case, this issue is exacerbated by the poor inter-node networking.
+- As for the evaluation iteration, we have observed that varying the evaluation batch size has no impact on throughput, while increasing the number of devices involved does. We have seen that, due to the procedure it performs for metric calculation on the CPU, this increases considerably and may be a factor to take into account depending on the time spent generating predictions on the GPU. It is worth noting that this evaluation iteration does not have to be carried out every epoch, so the effects on the overall training would be diminished. Another option would be to perform the evaluation with only a portion of the devices involved in training, but this would be more complex to implement. Finally, regarding the broadcast of the metric, it is something that we will have to take into account if we significantly increase the number of devices.
+## Acknowledgements
+I have carried out this project under the supervision of Professor Jordi Torres from the Universitat Politècnica de Catalunya. I am deeply grateful for the assistance of Laia Julio, Ricard Zarco, and Felix Ramos from the BSC-Support team, who helped me prepare the environment for the project on MN4.
+
+# Did you find this page helpful? Consider sharing it 🙌
