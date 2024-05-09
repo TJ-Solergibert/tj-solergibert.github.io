@@ -97,12 +97,6 @@ social:
 #   - icon: envelope
 #     icon_pack: fas
 #     link: '/#contact'
-  - icon: twitter
-    icon_pack: fab
-    link: https://twitter.com/TJSolergibert
-    label: Follow me on Twitter
-    display:
-      header: true
   - icon: github
     icon_pack: fab
     link: https://github.com/TJ-Solergibert
@@ -115,6 +109,12 @@ social:
   - icon: cv
     icon_pack: ai
     link: uploads/resume.pdf
+  - icon: twitter
+    icon_pack: fab
+    link: https://twitter.com/TJSolergibert
+    label: Follow me on Twitter
+    display:
+      header: true
 
 # Highlight the author in author lists? (true/false)
 highlight_name: true
