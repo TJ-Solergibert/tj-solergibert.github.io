@@ -521,7 +521,7 @@ In summary, to create a `DataLoader` we need:
   - **\_\_len\_\_**: Method that returns the number of samples we can query to the `Dataset`, essential for the `DataLoader`'s *sampler*.
 - *Sampler*: It will contain the indices that the `DataLoader` will extract from the `Dataset`. With Data Parallelism, we will use the `DistributedSampler`, which will divide the `Dataset` indices among the different Data Parallel Ranks. To resume training properly, it will be necessary to store the model checkpoint along with the number of total samples consumed.
 - *Collator*: Responsible for the final step of data processing before feeding batches of data into the model.
-`
+
 With all of this, you are now ready to construct any `DataLoader` you propose 🥳! Here is a diagram summarizing all the components to build custom `DataLoader`s and how they interact with each other.
 
 <img src="featured.png">
