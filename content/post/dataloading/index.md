@@ -2,10 +2,10 @@
 title: "Creating PyTorch Datasets and DataLoaders from Scratch: A Beginner's Guide" # 
 date: "2024-05-11"
 
-subtitle: "In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present `Nanoset`s, a custom dataset for LLM training at scale"
+subtitle: "In this post, we will address the fundamental aspects of Torch's Datasets and DataLoaders, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present Nanosets, a custom dataset for LLM training at scale with [Nanotron](https://github.com/TJ-Solergibert/nanotron)"
 
 # Summary for listings and search engines
-summary: "In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present `Nanoset`s, a custom dataset for LLM training at scale"
+summary: "In this post, we will address the fundamental aspects of Torch's Datasets and DataLoaders, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present Nanosets, a custom dataset for LLM training at scale with Nanotron"
 
 # Link this post with a project
 projects: []
@@ -274,8 +274,7 @@ The *sampler* will contain the list of indices that the `DataLoader` has to extr
 
 In our case, as we will have Data Parallelism, **we must avoid consuming the same sample repeatedly during an epoch**. To do this, we will use the `DistributedSampler`, which will divide the indices of the `Dataset` by the Data Parallel size. For this, we will have to specify the Data Parallel Size (Common in all processes) and the Data Parallel Rank.
 
-> [!NOTE]
-> Due to how the training loop is designed, it expects to never exhaust all the batches that the `DataLoader` can produce. This is why, during the creation of the `Nanoset` indices, we concatenate them a sufficient number of times to never run out of samples, but before this process, we shuffle them. We shuffle the data at this moment and not in the sampler because this way, we ensure that in each epoch, we consume all the samples from each of the datasets.
+> 🚨 Due to how the training loop is designed, it expects to never exhaust all the batches that the `DataLoader` can produce. This is why, during the creation of the `Nanoset` indices, we concatenate them a sufficient number of times to never run out of samples, but before this process, we shuffle them. We shuffle the data at this moment and not in the sampler because this way, we ensure that in each epoch, we consume all the samples from each of the datasets.
 
 In the following way, we will create the `DistributedSampler` in the processes that belong to the first Data Parallel Rank with a Data Parallel Size of 4.
 
@@ -525,6 +524,8 @@ In summary, to create a `DataLoader` we need:
 
 With all of this, you are now ready to construct any `DataLoader` you propose 🥳! 
 
-<img src="/images/DataLoader_Diagram.png">
+<img src="featured.png">
 
 Soon, I will publish a second part introducing Torch's [`IterableDataset`](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset)s, which allows us to stream and tokenize text on the fly but requires additional logic both to build the batches and to resume training after an interruption (Fundamental for large-scale training).
+
+# Did you find this page helpful? Consider sharing it 🙌
