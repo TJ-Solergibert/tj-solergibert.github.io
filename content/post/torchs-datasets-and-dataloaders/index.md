@@ -40,7 +40,7 @@ tags:
 In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. To do this, we will introduce [`Nanoset`s](https://github.com/TJ-Solergibert/nanotron/blob/nanosets/src/nanotron/data/nanoset.py), a dataset that I have developed for training LLMs at scale for [`Nanotron`](https://github.com/TJ-Solergibert/nanotron), the 3D parallelism trainer developed by Hugging Face 🤗. 
 
 # Nanosets
-Our objective for training LLMs is to build batches containing `batch_size` samples containing `sequence_length` tokens for the `input_ids` and the `labels`. To achieve this, we will present the `Nanosets`, a dataset based on [numpy memory-mapped arrays](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html), which allows to easily read bytes of data from local disk. These bytes we will read are the tokens of the documents with which we want to train our model. In order not to lengthen this article, we will start from the assumption that we already have the tokenized documents stored in a file, where each token is represented by 2 bytes.
+Our objective for training LLMs is to build batches containing `batch_size` samples with `sequence_length` tokens for the `input_ids` and `labels`. To achieve this, we will present the `Nanosets`, a dataset based on [numpy memory-mapped arrays](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html), which allows to easily read bytes of data from local disk. These bytes we will read are the tokens of the documents with which we want to train our model. In order not to lengthen this article, we will start from the assumption that we already have the tokenized documents stored in a file, where each token is represented by 2 bytes.
 ## Torch's Dataset
 Below we show the source code of the Nanosets.
 
@@ -93,7 +93,7 @@ class Nanoset(Dataset):
             self.dataset_buffer = memoryview(self.dataset_buffer_mmap)
             dataset_tokens = int(len(self.dataset_buffer))
             number_of_samples = int(
-                dataset_tokens / sequence_length
+                (dataset_tokens - 1) / sequence_length
             )  # Discard last sample of length < sequence_length
             self.dataset_lengths.append(number_of_samples)
         ## Set dataset weights
