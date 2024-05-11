@@ -1,11 +1,11 @@
 ---
-title: "Creating PyTorch Datasets and DataLoaders from Scratch" # : A Beginner's Guide
-date: '2024-05-11'
+title: "Creating PyTorch Datasets and DataLoaders from Scratch: A Beginner's Guide" # 
+date: "2024-05-11"
 
-subtitle: 'In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present `Nanoset`s, a custom dataset for LLM training at scale'
+subtitle: "In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present `Nanoset`s, a custom dataset for LLM training at scale"
 
 # Summary for listings and search engines
-summary: 'In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present `Nanoset`s, a custom dataset for LLM training at scale'
+summary: "In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. We will present `Nanoset`s, a custom dataset for LLM training at scale"
 
 # Link this post with a project
 projects: []
