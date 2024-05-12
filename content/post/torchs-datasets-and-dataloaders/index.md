@@ -42,7 +42,7 @@ In this post, we will address the fundamental aspects of Torch's `Dataset`s and 
 # Nanosets
 Our objective for training LLMs is to build batches containing `batch_size` samples with `sequence_length` tokens for the `input_ids` and `labels`. To achieve this, we will present the `Nanosets`, a dataset based on [numpy memory-mapped arrays](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html), which allows to easily read bytes of data from local disk. These bytes we will read are the tokens of the documents with which we want to train our model. In order not to lengthen this article, we will start from the assumption that we already have the tokenized documents stored in a file, where each token is represented by 2 bytes.
 ## Torch's Dataset
-Below we show the source code of the Nanosets.
+Below we show the source code of the `Nanosets`.
 
 ```python
 from typing import Dict, List, Union
@@ -182,7 +182,8 @@ class Nanoset(Dataset):
 
 The 3 core aspects of a `Dataset` are:
 - **\_\_init\_\_**: This method will be responsible for creating our dataset based on the arguments we introduce. Here we build all the logic related to how we interact with the `Dataset`.
-  
+  > 🚨 Next we will explain the core details of `Nanosets`. It is not necessary to understand them in depth to understand the rest of the post, so feel free to step over this part. It serves as an example to illustrate the idea that in the \_\_init\_\_ method you have to build all the necessary logic to later interact with the `Dataset`.  
+
   In our case, the parameters characterizing each `Nanoset` are as follows:
     - `dataset_paths`: One or multiple paths to the datasets containing tokenized documents.
     - `dataset_weights`: If we train the model with >1 datasets, we can specify the proportion of samples from each one during training.
@@ -281,14 +282,16 @@ In the following way, we will create the `DistributedSampler` in the processes t
 ```python
 from torch.utils.data.distributed import DistributedSampler
 
-sampler = DistributedSampler(train_nanoset, num_replicas=4, rank=0, shuffle=False)
+DATA_PARALLEL_SIZE = 4
+
+sampler = DistributedSampler(train_nanoset, num_replicas=DATA_PARALLEL_SIZE, rank=0, shuffle=False)
 ```
 
 These will be the indices that we will query from the `Dataset`.
 
 ```python
 sampler = iter(sampler)
-for _ in range(5):
+for _ in range(4):
     print(next(sampler))
 ```
 
@@ -296,14 +299,13 @@ for _ in range(5):
     4
     8
     12
-    16
 
 And this is how we create the `DistributedSampler` for the processes belonging to the second Data Parallel Rank. As can be seen, the sampler access different indices from the `Dataset`.
 
 ```python
-sampler_1 = DistributedSampler(train_nanoset, num_replicas=4, rank=1, shuffle=False)
+sampler_1 = DistributedSampler(train_nanoset, num_replicas=DATA_PARALLEL_SIZE, rank=1, shuffle=False)
 sampler_1 = iter(sampler_1)
-for _ in range(5):
+for _ in range(4):
     print(next(sampler_1))
 ```
 
@@ -311,7 +313,23 @@ for _ in range(5):
     5
     9
     13
-    17
+
+If we have a `Dataset` with 16 samples and a Data Parallel Size of 4, the `DistributedSampler` indices will look like this:
+```
+Proc1 | Proc2 | Proc3 | Proc4
+------------------------------ Epoch 1
+0	   1	   2	   3
+4	   5	   6	   7
+8	   9	   10	   11
+12	   13	   14	   15
+------------------------------ Epoch 2
+0	   1	   2	   3
+4	   5	   6	   7
+8	   9	   10	   11
+12	   13	   14	   15
+------------------------------ Epoch 3
+...
+```
 
 ### The Collator
 
@@ -464,10 +482,10 @@ I recommend that you consult the [documentation of Torch's `DataLoader`s](https:
 
 During training, interruptions are possible (such as GPU crashing, exceeding the time limit of the cluster policy, cluster down for maintenance, etc.), and there's nothing worse than having to start training all over again, right? That's why it's essential to program checkpointing mechanisms that store the model's state, but also of the `DataLoader`'s states in order to avoid consuming the same data again. To achieve this, we will have to store the number of samples consumed at the moment at which we took the checkpoint along with the model and, once we resume training, skip this number of samples in the *sampler*.
 
-Below, we show an example of how training is stopped at iteration 18 when we were going to consume sample 70. And how, upon resuming training, with the help of the `SkipBatchSampler`, we skip the first `17*batch_size` samples to resume training from sample 70.
+Below, we show an example of how training is stopped at iteration 18 when we were going to consume sample 70. And how, upon resuming training, with the help of the `SkipBatchSampler`, we skip the first `17*Data Parallel Size` samples to resume training from sample 70.
 
 ```python
-init_sampler = DistributedSampler(train_nanoset, num_replicas=4, rank=2, shuffle=False)
+init_sampler = DistributedSampler(train_nanoset, num_replicas=DATA_PARALLEL_SIZE, rank=2, shuffle=False)
 
 CRASH_AT_ITERATION = 17
 
@@ -485,24 +503,24 @@ from torch.utils.data import BatchSampler
 
 class SkipBatchSampler(BatchSampler):
     """
-    A `torch.utils.data.BatchSampler` that skips the first `n` batches of another `torch.utils.data.BatchSampler`.
-    Note that in case of DDP, we skip batches on each rank, so a total of `skip_batches * parallel_context.dp_pg.size()` batches
+    A `torch.utils.data.BatchSampler` that skips the first `n` samples of another `torch.utils.data.BatchSampler`.
+    Note that in case of DDP, we skip samples on each rank, so a total of `skipped_batches * MICRO_BATCH_SIZE * parallel_context.dp_pg.size()` samples
     """
 
-    def __init__(self, batch_sampler: BatchSampler, skip_batches: int, dp_size: int):
+    def __init__(self, batch_sampler: BatchSampler, skip_samples: int, dp_size: int):
         self.batch_sampler = batch_sampler
-        # In case of DDP, we skip batches on each rank, so a total of `skip_batches * parallel_context.dp_pg.size()` batches
-        self.skip_batches = skip_batches // dp_size
+        # In case of DDP, we skip batches on each rank, so a total of `skip_samples * parallel_context.dp_pg.size()` batches
+        self.skip_samples = skip_samples // dp_size
 
     def __iter__(self):
         for index, samples in enumerate(self.batch_sampler):
-            if index >= self.skip_batches:
+            if index >= self.skip_samples:
                 yield samples
 ```
 
 ```python
-resume_sampler = DistributedSampler(train_nanoset, num_replicas=4, rank=2, shuffle=False)
-resume_sampler = SkipBatchSampler(resume_sampler, 4*CRASH_AT_ITERATION, 4)
+resume_sampler = DistributedSampler(train_nanoset, num_replicas=DATA_PARALLEL_SIZE, rank=2, shuffle=False)
+resume_sampler = SkipBatchSampler(resume_sampler, DATA_PARALLEL_SIZE*CRASH_AT_ITERATION, 4)
 
 for sample in resume_sampler:
     print(sample)
