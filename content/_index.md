@@ -141,10 +141,10 @@ sections:
           description: |2-
               Carrying out my master's thesis in the [Meditron project](https://www.meditron.io/) under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My contributions include:
 
-              * Develop Supervised Fine-tuning pipelines for 8B & 70B models using the Hugging Face Stack and DeepSpeed for sharding the models among several nodes
-              * Develop [input data pipelines](https://github.com/huggingface/nanotron/pull/155) for our 3D parallelism codebase. The pipelines support recovering from failures, Data/Tensor/Pipeline parallelism, and include tests to verify its functionality
-              * Conducted a scaling study of the cluster to find the optimal configuration for model training. Benchmark of the effects of activation checkpointing, different optimizers, and several types of precision, among others
-              * Optimize the software stack and develop documentation for running distributed PyTorch applications among several nodes in our cluster with the runai scheduler
+              * Develop Supervised Fine-tuning pipelines for 8B & 70B models using the Hugging Face 🤗 Stack and DeepSpeed for sharding the models among several nodes.
+              * Develop efficient input data pipelines for Nanotron. The pipelines support recovering from failures, Data/Tensor/Pipeline parallelism, and include tests to verify its functionality. [[GitHub PR]](https://github.com/huggingface/nanotron/pull/155)
+              * Conducted a scaling study of the cluster to find the optimal configuration for model training. Benchmark of the effects of activation checkpointing, different optimizers, and several types of precision, among others.
+              * Optimize the software stack and develop guidelines for running distributed PyTorch applications among several nodes in a cluster with the runai scheduler.
 
         - title: Computer Vision Research Associate
           company: UPC, Image Processing Group
@@ -154,11 +154,11 @@ sections:
           date_start: '2022-01-01'
           date_end: '2023-03-31'
           description: |2-
-              Member of the [UPC - Providence+](https://www.providenceplus.upc.edu/) team participating in the [XPRIZE: Rainforest competition](https://www.xprize.org/prizes/rainforest). My contributions include:
+              Member of the [UPC - Providence+](https://www.providenceplus.upc.edu/) team participating in the [XPRIZE: Rainforest competition](https://www.xprize.org/prizes/rainforest). During my stay in the project I carried out my bachelor's thesis under the supervision of Professor [Ferran Marqués](https://scholar.google.com/citations?user=oiX2WNgAAAAJ&hl=en) and Professor [Xavier Giró-i-Nieto](https://scholar.google.com/citations?user=M3ZUEc8AAAAJ&hl=en). My contributions include:
 
-              * Research of synthetic data generation techniques. Created an end-to-end pipeline to generate synthetic datasets with pixel-level segmentations based on SOTA techniques
+              * Research of synthetic data generation techniques. Develop an end-to-end pipeline to generate synthetic datasets with pixel-level segmentations based on SOTA techniques.
               * Train models to classify images between +1000 animal species with contrastive learning techniques.
-              * Accelerate model training with multiple GPUs, enabling data parallelism, developing efficient input data pipelines and mixed precision
+              * Accelerate model training with multiple GPUs, enabling data parallelism, developing efficient input data pipelines and mixed precision.
         - title: Network Operation Center Engineer Intern
           company: Cellnex Telecom
         #   company_url: ''
@@ -167,10 +167,11 @@ sections:
           date_start: '2021-04-01'
           date_end: '2022-03-31'
           description: |2-
+              My main tasks were:
 
-              * Prioritize incidents in the Cellnex network according to their impact and act remotely to avoid their impact, completing their resolution by coordinating local operations if necessary
-              * Active supervision of the Cellnex network to anticipate breakdowns
-              * Employing software for remote configuration of Cisco, NEC, Siae and Marconi equipment among others
+              * Prioritize incidents in the Cellnex network according to their risk and act remotely to avoid their impact, completing their resolution by coordinating local operations if necessary.
+              * Active supervision of the Cellnex network to anticipate breakdowns.
+              * Employing software for remote configuration of Cisco, NEC, Siae and Marconi equipment among others.
     design:
       columns: '2'
   # - block: portfolio

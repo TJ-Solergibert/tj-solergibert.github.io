@@ -119,10 +119,11 @@ social:
 # Highlight the author in author lists? (true/false)
 highlight_name: true
 ---
+Hi 👋🏼,
 
-I'm a high-energy individual passionate about learning new things. My primary focus lies in optimizing large-scale LLM training. I thrive on experimenting with and pushing the boundaries of new state-of-the-art technologies to achieve maximum performance. I enjoy documenting my findings and sharing them with the community.
+I'm Toni, a MSc student in High Performance Computing deeply interested in accelerating AI applications. I consider myself a high-energy individual ⚡️ who is passionate about learning new things. My primary focus lies in optimizing Large-Scale LLM training. I thrive on experimenting with and pushing the boundaries of new state-of-the-art technologies to achieve maximum performance, rather than just sticking to theoretical concepts. I love writing down everything I learn and sharing it with the community!
 
-Currently I'm in Lausanne doing my Master's Thesis at the MLO Lab under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My efforts are focused on the [Meditron project](https://www.meditron.io/), working on the Large-Scale training of the models.
+Currently I'm in Lausanne 🇨🇭 doing my Master's Thesis at the Machine Learning and Optimization Laboratory under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My efforts are focused on the [Meditron project](https://www.meditron.io/), building the doctors of the future 🤖🩺⛑️! Although my main contributions are related with the the Large-Scale training of the models, I am also interested in other areas such Reinforcement Learning from Human Feedback (RLHF) and evaluation.
 
-Passionate about cycling, track and field, and hiking. Don't be surprised if we ever cross paths while I'm training!
+Passionate about cycling 🚵🏼, track and field 🏃🏻, and hiking 🏔️. Don't be surprised if we ever cross paths while I'm training!
 {style="text-align: justify;"}
