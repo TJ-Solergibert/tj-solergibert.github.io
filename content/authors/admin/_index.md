@@ -25,7 +25,7 @@ role: tj.solergibert@gmail.com
 #     url: https://www.stanford.edu/
 
 # Short bio (displayed in user profile at end of posts)
-bio: My research interests include High Performance Computing, Large-Scale LLM Training and Distributed Applications.
+bio: Hi 👋🏼,\nI'm Toni, a MSc student in High Performance Computing deeply interested in accelerating AI applications. You can contact me via LinkedIn or email. Follow me on GitHub to see my projects, and you can also find me on Twitter, but please don't follow me on the street!
 
 # Interests to show in About widget
 interests:
