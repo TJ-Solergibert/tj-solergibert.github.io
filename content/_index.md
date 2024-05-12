@@ -120,6 +120,7 @@ sections:
       view: compact
       columns: '2'
   - block: experience
+    id: experience
     content:
       title: Experience & Research Projects
       # Date format for experience
@@ -141,10 +142,10 @@ sections:
           description: |2-
               Carrying out my master's thesis in the [Meditron project](https://www.meditron.io/) under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My contributions include:
 
-              * Develop Supervised Fine-tuning pipelines for 8B & 70B models using the Hugging Face 🤗 Stack and DeepSpeed for sharding the models among several nodes.
-              * Develop efficient input data pipelines for Nanotron. The pipelines support recovering from failures, Data/Tensor/Pipeline parallelism, and include tests to verify its functionality. [[GitHub PR]](https://github.com/huggingface/nanotron/pull/155)
-              * Conducted a scaling study of the cluster to find the optimal configuration for model training. Benchmark of the effects of activation checkpointing, different optimizers, and several types of precision, among others.
-              * Optimize the software stack and develop guidelines for running distributed PyTorch applications among several nodes in a cluster with the runai scheduler.
+              * Develop Instruction Tuning pipelines for 8B & 70B models using the Hugging Face 🤗 Stack and DeepSpeed for sharding the models among several nodes.
+              * Develop efficient input data pipelines for Nanotron. The pipelines support recovering from failures, Data & Tensor & Pipeline parallelism, and tests to verify its functionality. [[GitHub PR]](https://github.com/huggingface/nanotron/pull/155), [[Blog]](https://tj-solergibert.github.io/post/torchs-datasets-and-dataloaders/)
+              * Conduct a scaling study of the cluster to find the optimal configuration for model training. Benchmark of the effects of activation checkpointing, different optimizers, and several types of precision, among others.
+              * Optimize the software stack and develop guidelines for running distributed PyTorch applications among several nodes for the EPFL cluster with the runai scheduler.
 
         - title: Computer Vision Research Associate
           company: UPC, Image Processing Group

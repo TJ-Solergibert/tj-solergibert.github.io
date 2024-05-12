@@ -1,9 +1,9 @@
 ---
-title: Transformers training in supercomputers with the 🤗 Stack and Slurm
-subtitle: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with the DistributedDataParallel strategy using the 🤗 Stack and Slurm
+title: Transformers training in supercomputers with Hugging Face 🤗 and Slurm
+subtitle: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with the DistributedDataParallel strategy using Hugging Face 🤗 and Slurm
 
 # Summary for listings and search engines
-summary: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with PyTorch's DistributedDataParallel strategy using the 🤗 Stack and Slurm
+summary: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with PyTorch's DistributedDataParallel strategy using Hugging Face 🤗 and Slurm
 
 # Link this post with a project
 projects: []
@@ -45,7 +45,7 @@ tags:
 
 
 ## Introduction
-In this project, we have studied data parallelism to accelerate the training of transformers, both with multiple GPUs on the same node and across multiple nodes. We have primarily analyzed the effect of three variables: Training batch size, mixed precision and evaluation batch size.
+In this project, we have studied data parallelism to accelerate the training of transformers, both with multiple GPUs on the same node and across multiple nodes. We have primarily analyzed the effect of three variables: Training batch size, mixed precision and evaluation batch size. The code is avaible in [GitHub](https://github.com/TJ-Solergibert/transformers-in-supercomputers).
 
 All experiments were conducted using PyTorch, 🤗 Transformers for the models, 🤗 Datasets for preprocessing and injecting data into the model, 🤗 Evaluate for calculating model metrics, and 🤗 Accelerate for distributing the model training across multiple devices. We conducted the experiments on MareNostrum4 - CTE Power partition at the [Barcelona Supercomputing Center](https://www.bsc.es). This supercomputer utilized Slurm for job scheduling and resource management. The cluster is composed of 54 servers, each one containing:
 - 2 x IBM Power9 8335-GTG @ 3.00GHz (20 cores and 4 threads/core, total 160 threads per node)

@@ -108,7 +108,7 @@ social:
   # and uncomment the lines below.
   - icon: cv
     icon_pack: ai
-    link: uploads/resume.pdf
+    link: uploads/CV_AntoniJoanSolergibert.pdf
   - icon: twitter
     icon_pack: fab
     link: https://twitter.com/TJSolergibert
@@ -121,7 +121,7 @@ highlight_name: true
 ---
 Hi 👋🏼,
 
-I'm Toni, a MSc student in High Performance Computing deeply interested in accelerating AI applications. I consider myself a high-energy individual ⚡️ who is passionate about learning new things. My primary focus lies in optimizing Large-Scale LLM training. I thrive on experimenting with and pushing the boundaries of new state-of-the-art technologies to achieve maximum performance, rather than just sticking to theoretical concepts. I love writing down everything I learn and sharing it with the community!
+I'm Toni, a MSc student in High Performance Computing deeply interested in accelerating AI applications. I consider myself a high-energy individual ⚡️ who is passionate about learning new things. My main area of research lies in the optimization of Large-Scale LLM training, both at the hardware and software levels. I thrive on experimenting with and pushing the boundaries of new state-of-the-art technologies to achieve maximum performance, rather than just sticking to theoretical concepts. I love writing down everything I learn and sharing it with the community!
 
 Currently I'm in Lausanne 🇨🇭 doing my Master's Thesis at the Machine Learning and Optimization Laboratory under the supervision of Professor [Mary-Anne Hartley](https://scholar.google.com/citations?user=P2CPNr8AAAAJ&hl=en) and Professor [Martin Jaggi](https://scholar.google.com/citations?user=r1TJBr8AAAAJ&hl=en). My efforts are focused on the [Meditron project](https://www.meditron.io/), building the doctors of the future 🤖🩺⛑️! Although my main contributions are related with the the Large-Scale training of the models, I am also interested in other areas such Reinforcement Learning from Human Feedback (RLHF) and evaluation.
 
