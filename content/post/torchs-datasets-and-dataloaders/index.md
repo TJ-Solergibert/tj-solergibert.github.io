@@ -37,12 +37,12 @@ tags:
 
 # Introduction
 
-In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. To do this, we will introduce [`Nanoset`s](https://github.com/TJ-Solergibert/nanotron/blob/nanosets/src/nanotron/data/nanoset.py), a dataset that I have developed for training LLMs at scale for [`Nanotron`](https://github.com/TJ-Solergibert/nanotron), the 3D parallelism trainer developed by Hugging Face 🤗. 
+In this post, we will address the fundamental aspects of Torch's `Dataset`s and `DataLoader`s, considering an environment with **Data, Pipeline and Tensor Parallelism** and including functionalities to resume training after an interruption. To do this, we will introduce [`Nanoset`](https://github.com/TJ-Solergibert/nanotron/blob/nanosets/src/nanotron/data/nanoset.py), a dataset that I have developed for training LLMs at scale for [`Nanotron`](https://github.com/TJ-Solergibert/nanotron), the 3D parallelism trainer developed by Hugging Face 🤗. 
 
-# Nanosets
-Our objective for training LLMs is to build batches containing `batch_size` samples with `sequence_length` tokens for the `input_ids` and `labels`. To achieve this, we will present the `Nanosets`, a dataset based on [numpy memory-mapped arrays](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html), which allows to easily read bytes of data from local disk. These bytes we will read are the tokens of the documents with which we want to train our model. In order not to lengthen this article, we will start from the assumption that we already have the tokenized documents stored in a file, where each token is represented by 2 bytes.
+# Nanoset
+Our objective for training LLMs is to build batches containing `batch_size` samples with `sequence_length` tokens for the `input_ids` and `labels`. To achieve this, we will present the `Nanoset`, a dataset based on [numpy memory-mapped arrays](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html), which allows to easily read bytes of data from local disk. These bytes are the tokens of the documents with which we want to train our model. In order not to lengthen this article, we will start from the assumption that we already have the tokenized documents stored in a file, where each token is represented by 2 bytes.
 ## Torch's Dataset
-Below we show the source code of the `Nanosets`.
+Below we show the source code of the `Nanoset`.
 
 ```python
 from typing import Dict, List, Union
@@ -338,7 +338,7 @@ If we look at the \_\_getitem\_\_ method of the `Nanoset`, we observe how each s
 
 The *collator* will be responsible for carrying out a final data processing step on each sample before feeding them into the model. This final step often depends on more specific variables of each process, such as the Data Parallel Rank or the Pipeline stage. While it is true that we could do this in the \_\_getitem\_\_ method, it's better to do it in the collator so we construct exactly the same `Nanoset` in all processes.
 
-Below we show the *collator* that we will use with the `Nanosets` in `Nanotron`. As can be seen, we will distinguish between the processes at the beginning of the pipeline (which will require the inputs), those at the last stage of the pipeline (which will require the labels), and the rest. It will also be responsible for creating the labels from the inputs (Shifting the tokens 1 position to the right) and transforming all arrays into `torch.Tensor`s.
+Below we show the *collator* that we will use with the `Nanoset` in `Nanotron`. As can be seen, we will distinguish between the processes at the beginning of the pipeline (which will require the inputs), those at the last stage of the pipeline (which will require the labels), and the rest. It will also be responsible for creating the labels from the inputs (Shifting the tokens 1 position to the right) and transforming all arrays into `torch.Tensor`s.
 
 ```python
 import dataclasses
@@ -531,7 +531,7 @@ for sample in resume_sampler:
     70
 
 # To sum up
-Throughout this post, we have seen the fundamental aspects of `Datasets` and `DataLoaders`, introducing `Nanoset`s, a `Dataset` for training LLMs at scale.
+Throughout this post, we have seen the fundamental aspects of `Datasets` and `DataLoaders`, introducing `Nanoset`, a `Dataset` for training LLMs at scale.
 
 In summary, to create a `DataLoader` we need:
 - `Dataset`: An object that we can index to extract samples. In environments with Data Parallelism, we will create the same `Dataset` in all processes. We should pay attention to the following methods:
