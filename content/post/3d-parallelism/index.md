@@ -1,18 +1,18 @@
 ---
 title: 3D Parallelism
-subtitle: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with the DistributedDataParallel strategy using Hugging Face 🤗 and Slurm
+subtitle: In this post, we will present 3D parallelism, the technology behind large-scale LLM training. We will delve into the core details of pipeline, tensor, and data parallelism with code snippets from Nanotron⚡️, a 3D parallel trainer from Hugging Face🤗
 
 # Summary for listings and search engines
-summary: In this post we will analyze the scalability with up to a total of 4 nodes of the training of a transformer with PyTorch's DistributedDataParallel strategy using Hugging Face 🤗 and Slurm
+summary: In this post, we will present 3D parallelism, the technology behind large-scale LLM training. We will delve into the core details of pipeline, tensor, and data parallelism with code snippets from Nanotron⚡️, a 3D parallel trainer from Hugging Face🤗
 
 # Link this post with a project
 projects: []
 
 # Date published
-date: '2024-6-10T00:00:00Z'
+date: "2024-06-10"
 
 # Date updated
-lastmod: '2024-6-10T00:00:00Z'
+lastmod: "2024-06-10"
 
 # Is this an unpublished draft?
 draft: false
@@ -157,12 +157,12 @@ In the previous section we defined pipeline parallelism as the division of the m
 [DIAGRAM PIPELINE PARALLELISM VS TENSOR PARALLELISM, foto esa del gh de nvidia]
 
 Tensor parallelism splits the parameters as follows:
-- MLP Block: In this block, we will perform GEMM (A) → GELU → GEMM (B) → dropout. Since GeLU is a nonlinear function, we will divide matrix A along its columns $A = [A1, A2]$. This partitioning allows the GeLU nonlinearity to be independently applied to the output of each partitioned GEMM:
+- MLP Block: In this block, we will perform GEMM (A) → GELU → GEMM (B) → dropout. Since GeLU is a nonlinear function, we will divide matrix A along its columns `A = [A1, A2]`. This partitioning allows the GeLU nonlinearity to be independently applied to the output of each partitioned GEMM:
 
- $[Y1, Y2] = [GeLU(XA1), GeLU(XA2)]$
+    `[Y1, Y2] = [GeLU(XA1), GeLU(XA2)]`
 
- Hence, we partition the first GEMM in this column parallel fashion and split the second GEMM (B) along its rows so it takes the output of the GeLU layer directly without requiring any communication. The output of the second GEMM is then reduced across the GPUs before passing the output to the dropout layer. This approach splits both GEMMs in the MLP block across GPUs and requires only a single all-reduce operation in the forward pass and another all-reduce in the backward pass.
-- Self-attention block: Similarly to the MLP block, in this block we will divide the $Q$, $K$ & $V$ matrices along their columns and parallelize the second GEMM (B) along its rows. As in the previous case, we perform the operations in this order to reduce synchronizations and respect nonlinear functions. This approach also requires only a single all-reduce operation in the forward pass and a single all-reduce in the backward pass.
+    Hence, we partition the first GEMM in this column parallel fashion and split the second GEMM (B) along its rows so it takes the output of the GeLU layer directly without requiring any communication. The output of the second GEMM is then reduced across the GPUs before passing the output to the dropout layer. This approach splits both GEMMs in the MLP block across GPUs and requires only a single all-reduce operation in the forward pass and another all-reduce in the backward pass.
+- Self-attention block: Similarly to the MLP block, in this block we will divide the `Q`, `K` & `V` matrices along their columns and parallelize the second GEMM (B) along its rows. As in the previous case, we perform the operations in this order to reduce synchronizations and respect nonlinear functions. This approach also requires only a single all-reduce operation in the forward pass and a single all-reduce in the backward pass.
 - Embedding layer & LM Head: Both operations are also parallelized across the tensor parallel dimension, in the Row and Column axis respectively.
 
 Llama3 8B contains 32 hidden layers, so we will perform 64 all-reduces in the forward pass and another 64 in the backward pass. This is why we always keep the devices belonging to the same tensor parallel group on the same node, as communications are much faster compared to inter-node communications.
@@ -173,7 +173,7 @@ It is worth noting that Nanotron performs an additional optimization to maximize
 
 ## Data Parallelism
 
-Once we have defined how we want to split the model among several devices, we will enable data parallelism to process more samples from the dataset in parallel. To do this, we will create $N$ copies of the model (remember that each copy will be composed of $Pipeline\ Parallel\ Size \times Tensor\ Parallel\ Size$ devices) and divide the dataset into $N$ splits, providing each copy with a different split. This parallelism degree is the simplest to implement and has the least overhead since it only adds a collective call to synchronize the gradients in each training step.
+Once we have defined how we want to split the model among several devices, we will enable data parallelism to process more samples from the dataset in parallel. To do this, we will create `N` copies of the model (remember that each copy will be composed of `Pipeline Parallel Size X Tensor Parallel Size` devices) and divide the dataset into `N` splits, providing each copy with a different split. This parallelism degree is the simplest to implement and has the least overhead since it only adds a collective call to synchronize the gradients in each training step.
 
 Gradient synchronization in Nanotron will be done by [`wrapping the models`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/trainer.py#L801) with the [`DistributedDataParallel`](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) class from PyTorch. Additionally, we will create the same Dataset and DataLoader in each and every process, and with the help of the [`DistributedSampler`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/dataloader.py#L431C19-L431C37), we will divide the indices of the Dataset among the different data parallel groups.
 
