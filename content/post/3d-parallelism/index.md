@@ -1,5 +1,5 @@
 ---
-title: 3D Parallelism
+title: "3D Parallelism Unveiled: Step-by-Step with Code"
 subtitle: In this post, we will present 3D parallelism, the technology behind large-scale LLM training. We will delve into the core details of pipeline, tensor, and data parallelism with code snippets from Nanotron⚡️, a 3D parallel trainer from Hugging Face🤗
 
 # Summary for listings and search engines
