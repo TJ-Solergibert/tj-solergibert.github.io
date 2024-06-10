@@ -41,6 +41,12 @@ tags:
 # categories:
 #   - Demo
 #   - 教程
+
+image:
+  #caption: 'Image credit: [**Unsplash**](https://unsplash.com/photos/CpkOjOcXdUY)'
+  #focal_point: ''
+  placement: 2
+  preview_only: true
 ---
 
 ## Introduction
@@ -50,9 +56,9 @@ Those times when it was possible to fit an entire model on a single GPU are long
 For the training of these models, there are mainly two approaches:
 - **[FSDP](https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel)** (PyTorch) & **[DeepSpeed](https://github.com/microsoft/DeepSpeed)** (Microsoft). This strategies shard the model layers across several devices. In order to solve the problem of the pipeline bubble (we will expand on this in Section 4 [reference section 4]), each device acts as an independent data parallel group, which leads to an increase in communications. This is not a problem when conducting experiments on a single node since communications are very fast, but when using multiple nodes, the performance decreases significantly. How much it decreases depends on the networking of the cluster, but generally, it is not fast enough compared to the speed at which GPUs process the data.
 
- > 🚨 There are several scaling studies of these strategies. It is important to pay attention to the networking and hardware they report and compare it with that of your cluster (with this nccl test, for example) to predict the performance of this strategy.
+  > 🚨 There are several scaling studies of these strategies. It is important to pay attention to the networking and hardware they report and compare it with that of your cluster (with this nccl test, for example) to predict the performance of this strategy.
 
- These strategies are perfectly integrated into `accelerate` and work with all `transformers` models with minimal code modifications.
+  These strategies are perfectly integrated into `accelerate` and work with all `transformers` models with minimal code modifications.
 
 - **3D Parallelism** [[1]](https://arxiv.org/pdf/1909.08053), [[2]](https://arxiv.org/pdf/2104.04473), [[3]](https://arxiv.org/pdf/2205.05198). This strategy involves dividing not only the model layers but also the parameters of each layer among several devices. We will mainly discuss three types of parallelism: Tensor Parallelism, Pipeline Parallelism, and Data Parallelism. The most interesting ones will be Pipeline and Tensor Parallelism (abbreviated as model parallelism), which handle dividing not only the model layers but also the parameters among several devices. We will then replicate this configuration in the data parallel dimension to scale training.
 
@@ -147,8 +153,16 @@ for idx, layers in enumerate(pp_layers):
 Once the model is divided, each time we want to perform a forward/backward pass, we will have to process the inputs with the layers that reside in a specific stage and send the activations to the next/previous rank in the pipeline. This will generate the dreaded pipeline bubble, causing the GPUs to idle while waiting for inputs to process and before the optimizer step. The more pipeline stages we have, the larger the bubble will be, resulting in lower GPU utilization. Therefore, we will always try to reduce the number of pipeline stages. Finally, to alleviate this problem, we will divide the batch into several micro-batches [[4]](https://arxiv.org/abs/1811.06965), so the GPUs will be less time idling waiting for inputs in exchange for having more but smaller communications, which is not a problem.
 
 <img src="img/gpipe.png">
+<em>image_caption</em>
 
 In the previous image, you can see the simplest pipeline schedule, which consists of first performing a forward pass of all the micro-batches, then a backward pass, and finally updating the parameters (we will refer to this schedule as `All Forward All Backward` schedule). Two years later, the PipeDream-Flush [[5]](https://arxiv.org/abs/2006.09503) schedule emerged, which, although it did not improve the pipeline bubble problem, greatly reduced the memory requirements as the number of micro-batches increased, significantly speeding up model training (`One Forward One Backward` schedule).
+
+<p>
+    <img src="img/meggpipe.png" alt>
+</p>
+<p>
+    <em>image_caption</em>
+</p>
 
 <img src="img/meggpipe.png">
 <img src="img/meg1f1b.png">
