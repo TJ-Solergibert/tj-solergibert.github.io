@@ -181,15 +181,20 @@ Nanotron⚡️ incorporates [`All Forward All Backward`](https://github.com/hugg
 
 In the previous section we defined pipeline parallelism as the division of the model layers among several stages, tensor parallelism can be seen as the division of the layer parameters among several devices. This allows to split models that do not fit on a single GPU among multiple GPUs without the pipeline parallelism bubble we discussed earlier. The following image illustrates this concept.
 
-[DIAGRAM PIPELINE PARALLELISM VS TENSOR PARALLELISM, foto esa del gh de nvidia]
+<img src="img/tpvspp.png">
+<em>Tensor parallelism shards the layers from a pipeline stage into multiple devices</em>
 
 Tensor parallelism splits the parameters as follows:
-- MLP Block: In this block, we will perform GEMM (A) → GELU → GEMM (B) → dropout. Since GeLU is a nonlinear function, we will divide matrix A along its columns `A = [A1, A2]`. This partitioning allows the GeLU nonlinearity to be independently applied to the output of each partitioned GEMM:
+- MLP Block: In this block, we will perform GEMM (`A`) → GELU → GEMM (`B`) → dropout. Since GeLU is a nonlinear function, we will divide matrix A along its columns `A = [A1, A2]`. This partitioning allows the GeLU nonlinearity to be independently applied to the output of each partitioned GEMM:
 
     `[Y1, Y2] = [GeLU(XA1), GeLU(XA2)]`
 
-    Hence, we partition the first GEMM in this column parallel fashion and split the second GEMM (B) along its rows so it takes the output of the GeLU layer directly without requiring any communication. The output of the second GEMM is then reduced across the GPUs before passing the output to the dropout layer. This approach splits both GEMMs in the MLP block across GPUs and requires only a single all-reduce operation in the forward pass and another all-reduce in the backward pass.
-- Self-attention block: Similarly to the MLP block, in this block we will divide the `Q`, `K` & `V` matrices along their columns and parallelize the second GEMM (B) along its rows. As in the previous case, we perform the operations in this order to reduce synchronizations and respect nonlinear functions. This approach also requires only a single all-reduce operation in the forward pass and a single all-reduce in the backward pass.
+    Hence, we partition the first GEMM in this column parallel fashion and split the second GEMM (`B`) along its rows so it takes the output of the GeLU layer directly without requiring any communication. The output of the second GEMM is then reduced across the tensor parallel group before passing the output to the dropout layer. This approach splits both GEMMs in the MLP block across GPUs and requires only a single all-reduce operation in the forward pass and another all-reduce in the backward pass.
+    <img src="img/mlp.png">
+    <em>Source: Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</em>
+- Self-attention block: Similarly to the MLP block, in this block we will divide the `Q`, `K` & `V` matrices along their columns and parallelize the second GEMM (`B`) along its rows. As in the previous case, we perform the operations in this order to reduce synchronizations and respect nonlinear functions. This approach also requires only a single all-reduce operation in the forward pass and a single all-reduce in the backward pass.
+    <img src="img/selfattention.png">
+    <em>Source: Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</em>
 - Embedding layer & LM Head: Both operations are also parallelized across the tensor parallel dimension, in the Row and Column axis respectively.
 
 Llama3 8B contains 32 hidden layers, so we will perform 64 all-reduces in the forward pass and another 64 in the backward pass. This is why we always keep the devices belonging to the same tensor parallel group on the same node, as communications are much faster compared to inter-node communications.
