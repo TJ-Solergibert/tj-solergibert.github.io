@@ -34,9 +34,9 @@ authors:
 tags:
   - Transformers
   - 3D Parallelism
-  - Multinode Training
   - Distributed PyTorch
   - Large-Scale LLM Training
+  - High Performance Computing
 
 # categories:
 #   - Demo
