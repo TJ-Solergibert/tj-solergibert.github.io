@@ -69,12 +69,24 @@ The axis that requires the most interconnection bandwidth is the Tensor Parallel
 In Nanotron, we will first set the different sizes of each parallelism in the config file. Then, during the initialization of the `DistributedTrainer`, we will create a [`ParallelContext`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/context.py#L12). This object will be responsible for creating and storing all the `ProcessGroups`, allowing us to access them easily and in an organized manner. Below, we show how to create a `ParallelContext` and how to use it with torch's Distributed communication package.
 
 ```python
-import os
+global_rank = torch.tensor(int(os.environ["RANK"]))
+parallel_context = ParallelContext(tensor_parallel_size=2, pipeline_parallel_size=4, data_parallel_size=2)
+dist.all_reduce(global_rank, op=dist.ReduceOp.SUM, group=parallel_context.pp_pg)
+
+bc_tensor = torch.empty(1, dtype=torch.int64)
+if not parallel_context.world_pg.rank():
+    bc_tensor = torch.tensor(42, dtype=torch.int64)
+
+dist.broadcast(bc_tensor, src=0, group=parallel_context.world_pg)
+
+if not parallel_context.pp_pg.rank():
+    print(f"[{parallel_context.world_pg.rank()}] Reduced value: {global_rank}, Broadcasted value: {int(bc_tensor)}")
 ```
 
-    > Total number of samples: 1000
-    > Total number of tokens: 8192000
-    >   Total number of samples from the yelp_review_full_input_ids.npy dataset: 1000 (1.0)
+    [0] Reduced value: 24, Broadcasted value: 42
+    [1] Reduced value: 28, Broadcasted value: 42
+    [2] Reduced value: 32, Broadcasted value: 42
+    [3] Reduced value: 36, Broadcasted value: 42
 
 In this `ParallelContext`, the processes will be distributed as follows in a setup of 4 nodes with 4 GPUs per node.
 
