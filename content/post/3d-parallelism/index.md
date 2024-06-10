@@ -36,16 +36,13 @@ tags:
   - 3D Parallelism
   - Multinode Training
   - Distributed PyTorch
+  - Large-Scale LLM Training
 
 # categories:
 #   - Demo
 #   - 教程
 ---
 
-
-## Introduction
-
-# 3D Parallelism
 ## Introduction
 
 Those times when it was possible to fit an entire model on a single GPU are long gone. Although in recent years we have seen VRAM on GPUs reach up to 120GB, this is still not enough to accommodate state-of-the-art models that require dozens of these GPUs. This is why techniques have emerged to deal with these immense models, capable of leveraging large infrastructures by dividing the work among thousands of GPUs.
@@ -59,7 +56,7 @@ For the training of these models, there are mainly two approaches:
 
 - **3D Parallelism** [[1]](https://arxiv.org/pdf/1909.08053), [[2]](https://arxiv.org/pdf/2104.04473), [[3]](https://arxiv.org/pdf/2205.05198). This strategy involves dividing not only the model layers but also the parameters of each layer among several devices. We will mainly discuss three types of parallelism: Tensor Parallelism, Pipeline Parallelism, and Data Parallelism. The most interesting ones will be Pipeline and Tensor Parallelism (abbreviated as model parallelism), which handle dividing not only the model layers but also the parameters among several devices. We will then replicate this configuration in the data parallel dimension to scale training.
 
- This strategy has proven to be the most performant solution, and the differences with FSDP/DeepSpeed increase as more devices are used. Its main drawback is that it requires significant code modifications and is overall more complex and difficult to familiarize oneself with compared to the previous strategy.
+    This strategy has proven to be the most performant solution, and the differences with FSDP/DeepSpeed increase as more devices are used. Its main drawback is that it requires significant code modifications and is overall more complex and difficult to familiarize oneself with compared to the previous strategy.
 
 In this article, we will delve into the most relevant details of 3D parallelism with [Nanotron⚡️](https://github.com/huggingface/nanotron), the 3D parallel trainer developed by HuggingFace. In a future post, I will delve into the other mentioned strategy.
 
@@ -137,16 +134,17 @@ for idx, layers in enumerate(pp_layers):
 
 Once the model is divided, each time we want to perform a forward/backward pass, we will have to process the inputs with the layers that reside in a specific stage and send the activations to the next/previous rank in the pipeline. This will generate the dreaded pipeline bubble, causing the GPUs to idle while waiting for inputs to process and before the optimizer step. The more pipeline stages we have, the larger the bubble will be, resulting in lower GPU utilization. Therefore, we will always try to reduce the number of pipeline stages. Finally, to alleviate this problem, we will divide the batch into several micro-batches [[4]](https://arxiv.org/abs/1811.06965), so the GPUs will be less time idling waiting for inputs in exchange for having more but smaller communications, which is not a problem.
 
-[IMAGE GPIPE]
+<img src="img/gpipe.png">
 
 In the previous image, you can see the simplest pipeline schedule, which consists of first performing a forward pass of all the micro-batches, then a backward pass, and finally updating the parameters (we will refer to this schedule as `All Forward All Backward` schedule). Two years later, the PipeDream-Flush [[5]](https://arxiv.org/abs/2006.09503) schedule emerged, which, although it did not improve the pipeline bubble problem, greatly reduced the memory requirements as the number of micro-batches increased, significantly speeding up model training (`One Forward One Backward` schedule).
 
-[IMAGE MEG GPIPE and PIPEDREAM]
+<img src="img/meggpipe.png">
+<img src="img/meg1f1b.png">
 
 Following the PipeDream-Flush schedule, NVIDIA presented a schedule that could reduce the pipeline bubble at the cost of increased communications [[2]](https://arxiv.org/pdf/2104.04473). It achieved this by housing multiple pipeline stages on the same device (`Interleaved One Forward One Backward` schedule). In November 2023, scientists from the Sea AI Lab presented a family of schedules that promised to almost completely eliminate the pipeline bubble problem [[6]](https://arxiv.org/abs/2401.10241v1), and despite their complexity, projects like DeepSeekV2 have already benefited from these schedules [[7]](https://arxiv.org/abs/2405.04434). This schedule promises to eliminate the tensor parallel dimension and, unlike the One Forward One Backward schedules, its performance does not depend on housing many micro-batches, allowing greater control of the global batch size.
 
-[IMAGE MEG INTERLEAVED]
-[IMAGE ZERO BUBBLE]
+<img src="img/meginter.png">
+<img src="img/zerov.png">
 
 Nanotron incorporates [`All Forward All Backward`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py#L165) and [`One Forward One Backward`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py#L222) schedules in [`parallel/pipeline_parallel/engine.py`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py). I highly recommend taking a look at the second one, as we can easily observe the three phases of the schedule (Warm-up, One Forward One Backward, Cool-down).
 
@@ -177,13 +175,13 @@ Once we have defined how we want to split the model among several devices, we wi
 
 Gradient synchronization in Nanotron will be done by [`wrapping the models`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/trainer.py#L801) with the [`DistributedDataParallel`](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) class from PyTorch. Additionally, we will create the same Dataset and DataLoader in each and every process, and with the help of the [`DistributedSampler`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/dataloader.py#L431C19-L431C37), we will divide the indices of the Dataset among the different data parallel groups.
 
-[IMAGEN NANOSETS CON LINK!!!]
+<img src="img/nanosets.png">
 
 You may wonder why we create the same `Dataset` and `DataLoader` in all processes if only the first stage of the pipeline and the last need the inputs and the labels, respectively. Nanotron addresses this issue with [`TensorPointer`s](https://github.com/huggingface/nanotron/blob/main/src/nanotron/parallel/pipeline_parallel/tensor_pointer.py#L5), which indicate where the inputs come from and where to send the outputs in each stage of the pipeline. We will create them in the [collator](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/dataloader.py#L329), the last step before feeding data into the model, so the shard of the model on each device will get either the inputs (the first pipeline stage will get tokenized samples from the dataset), the labels (for computing the loss in the last stage of the pipeline), or a `TensorPointer` to know whether to consume data from the `DataLoader` or receive the inputs from antoher pipeline stage.
 
 Finally, Nanotron also incorporates the [`Zero-1 optimizer`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/optim/zero.py#L25). Without going into too much detail, this optimizer shards the optimizer states across the data parallel groups, which reduces memory consumption and allows us to increase the batch size. To activate it, we only need to specify it in the YAML config file (`optimizer.zero_stage = 1`).
 
-[ZERO1 IMAGE]
+<img src="img/zero1.png">
 
 ## To sum up
 
@@ -193,7 +191,7 @@ Throughout this post, we have covered the fundamental aspects of 3D parallelism,
 
 - Pipeline Parallelism: When tensor parallelism is not enough, we divide the model among several pipeline stages. We will always try to make the division among the stages as balanced as possible. This parallelism has a significant drawback, the pipeline bubble, so we will use the less pipeline stages as possible. There are various pipeline schedules that trade memory consumption, communications and complexity.
 
-- Data Parallelism: Once we define the sizes of the pipeline and tensor axis (a.k.a. model parallelism), we will use data parallelism to scale up training with more devices. Use the Zero-1 Optimizer to reduce memory consumption and increase the batch size to achieve greater device utilization.
+- Data Parallelism: Once we define the sizes of the pipeline and tensor axis (a.k.a. Model Parallelism), we will use data parallelism to scale up training with more devices. Use the Zero-1 Optimizer to reduce memory consumption and increase the batch size to achieve greater device utilization.
 
 After reading this post, you should be familiar with the basic pillars of large-scale LLM training, but we have left out more complex aspects such as sequence parallelism [[3]](https://arxiv.org/pdf/2205.05198), asynchronous tensor parallelism, the ZeRO-2 optimizer [[8]](https://arxiv.org/abs/1910.02054), selective activation recomputation [[3]](https://arxiv.org/pdf/2205.05198), and many more. I encourage you to explore these on your own and, above all, to experiment with everything we have covered in this post using libraries like [Megatron](https://github.com/NVIDIA/Megatron-LM) or [Nanotron ⚡️](https://github.com/huggingface/nanotron)!
 
