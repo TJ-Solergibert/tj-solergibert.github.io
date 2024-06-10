@@ -54,7 +54,7 @@ image:
 Those times when it was possible to fit an entire model on a single GPU are long gone. Although in recent years we have seen VRAM on GPUs reach up to 120GB, this is still not enough to accommodate state-of-the-art models that require dozens of these GPUs. This is why techniques have emerged to deal with these immense models, capable of leveraging large infrastructures by dividing the work among thousands of GPUs.
 
 For the training of these models, there are mainly two approaches:
-- **[FSDP](https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel)** (PyTorch) & **[DeepSpeed](https://github.com/microsoft/DeepSpeed)** (Microsoft). These strategies shard the model layers across several devices. In order to solve the problem of the pipeline bubble (we will expand on this in [Section 4](#pp)), each device acts as an independent data parallel group, which leads to an increase in communications. This is not a problem when conducting experiments on a single node since communications are very fast, but when using multiple nodes, the performance decreases significantly. How much it decreases depends on the networking of the cluster, but generally, it is not fast enough compared to the speed at which GPUs process the data.
+- **[FSDP](https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel)** (PyTorch) & **[DeepSpeed](https://github.com/microsoft/DeepSpeed)** (Microsoft). These strategies shard the model layers across several devices. In order to solve the problem of the pipeline bubble (we will expand on this in [Section 3](#pp)), each device acts as an independent data parallel group, which leads to an increase in communications. This is not a problem when conducting experiments on a single node since communications are very fast, but when using multiple nodes, the performance decreases significantly. How much it decreases depends on the networking of the cluster, but generally, it is not fast enough compared to the speed at which GPUs process the data.
 
   > 🚨 There are several scaling studies of these strategies. It is important to pay attention to the networking and hardware they report and compare it with that of your cluster (with this nccl test, for example) to predict the performance of this strategy.
 
@@ -70,7 +70,7 @@ In this article, we will delve into the most relevant details of 3D parallelism 
 
 During training, we will carry out communications in the three axes of parallelism. To do this, we will need to create a different `torch` `ProcessGroup` for each parallel dimension in each process.
 
-The axis that requires the most interconnection bandwidth is the Tensor Parallel one (we will delve into this issue in Section 3 [REFERENCIA SECTION3]). Therefore, we will always place the processes of the same Tensor Parallel Group on the same node, so we will never use a TP size greater than the number of GPUs per node (Section 3.2 of [[2]](https://arxiv.org/pdf/2104.04473)). If we are unable to fit the model in a single node using tensor parallelism, we will need to divide the model across multiple nodes in the pipeline parallel dimension. The pipeline parallel size will be the smallest possible that allows us to accommodate a copy of the model, and we will use the remaining GPUs to create different copies in the data parallel dimension (Section 5.4.2 of [[2]](https://arxiv.org/pdf/2104.04473)).
+The axis that requires the most interconnection bandwidth is the Tensor Parallel one (we will delve into this issue in [Section 4](#tp)). Therefore, we will always place the processes of the same Tensor Parallel Group on the same node, so we will never use a TP size greater than the number of GPUs per node (Section 3.2 of [[2]](https://arxiv.org/pdf/2104.04473)). If we are unable to fit the model in a single node using tensor parallelism, we will need to divide the model across multiple nodes in the pipeline parallel dimension. The pipeline parallel size will be the smallest possible that allows us to accommodate a copy of the model, and we will use the remaining GPUs to create different copies in the data parallel dimension (Section 5.4.2 of [[2]](https://arxiv.org/pdf/2104.04473)).
 
 In Nanotron, we will first set the different sizes of each parallelism in the config file. Then, during the initialization of the `DistributedTrainer`, we will create a [`ParallelContext`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/context.py#L12). This object will be responsible for creating and storing all the `ProcessGroups`, allowing us to access them easily and in an organized manner. Below, we show how to create a `ParallelContext` and how to use it with torch's Distributed communication package.
 
@@ -100,7 +100,7 @@ In this `ParallelContext`, the processes will be distributed as follows in a set
 
 <img src="featured.png">
 
-## Pipeline Parallelism <a name="pp"></a>
+## <a name="pp"></a>Pipeline Parallelism
 
 Pipeline parallelism consists of dividing the model layers among several stages (for now, think of each stage as a GPU, although when we discuss tensor parallelism, we will see that this is not always the case). The simplest strategy is to evenly divide the number of decoder layers among the stages, although we won't achieve perfect balance since models also contain other layers like the Embedding layer.
 
@@ -170,7 +170,7 @@ Following the PipeDream-Flush schedule, NVIDIA presented a schedule that could r
 
 Nanotron incorporates [`All Forward All Backward`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py#L165) and [`One Forward One Backward`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py#L222) schedules in [`parallel/pipeline_parallel/engine.py`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py). I highly recommend taking a look at the second one, as we can easily observe the three phases of the schedule (Warm-up, One Forward One Backward, Cool-down).
 
-## Tensor Parallelism
+## <a name="tp"></a>Tensor Parallelism
 
 In the previous section we defined pipeline parallelism as the division of the model layers among several stages, tensor parallelism can be seen as the division of the layer parameters among several devices. This allows to split models that do not fit on a single GPU among multiple GPUs without the pipeline parallelism bubble we discussed earlier. The following image illustrates this concept.
 
