@@ -153,24 +153,20 @@ for idx, layers in enumerate(pp_layers):
 Once the model is divided, each time we want to perform a forward/backward pass, we will have to process the inputs with the layers that reside in a specific stage and send the activations to the next/previous rank in the pipeline. This will generate the dreaded pipeline bubble, causing the GPUs to idle while waiting for inputs to process and before the optimizer step. The more pipeline stages we have, the larger the bubble will be, resulting in lower GPU utilization. Therefore, we will always try to reduce the number of pipeline stages. Finally, to alleviate this problem, we will divide the batch into several micro-batches [[4]](https://arxiv.org/abs/1811.06965), so the GPUs will be less time idling waiting for inputs in exchange for having more but smaller communications, which is not a problem.
 
 <img src="img/gpipe.png">
-<em>image_caption</em>
+<em>GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism</em>
 
 In the previous image, you can see the simplest pipeline schedule, which consists of first performing a forward pass of all the micro-batches, then a backward pass, and finally updating the parameters (we will refer to this schedule as `All Forward All Backward` schedule). Two years later, the PipeDream-Flush [[5]](https://arxiv.org/abs/2006.09503) schedule emerged, which, although it did not improve the pipeline bubble problem, greatly reduced the memory requirements as the number of micro-batches increased, significantly speeding up model training (`One Forward One Backward` schedule).
 
-<p>
-    <img src="img/meggpipe.png" alt>
-</p>
-<p>
-    <em>image_caption</em>
-</p>
-
 <img src="img/meggpipe.png">
 <img src="img/meg1f1b.png">
+<em>Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM</em>
 
 Following the PipeDream-Flush schedule, NVIDIA presented a schedule that could reduce the pipeline bubble at the cost of increased communications [[2]](https://arxiv.org/pdf/2104.04473). It achieved this by housing multiple pipeline stages on the same device (`Interleaved One Forward One Backward` schedule). In November 2023, scientists from the Sea AI Lab presented a family of schedules that promised to almost completely eliminate the pipeline bubble problem [[6]](https://arxiv.org/abs/2401.10241v1), and despite their complexity, projects like DeepSeekV2 have already benefited from these schedules [[7]](https://arxiv.org/abs/2405.04434). This schedule promises to eliminate the tensor parallel dimension and, unlike the One Forward One Backward schedules, its performance does not depend on housing many micro-batches, allowing greater control of the global batch size.
 
 <img src="img/meginter.png">
+<em>Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM</em>
 <img src="img/zerov.png">
+<em>Zero Bubble Pipeline Parallelism</em>
 
 Nanotron incorporates [`All Forward All Backward`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py#L165) and [`One Forward One Backward`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py#L222) schedules in [`parallel/pipeline_parallel/engine.py`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/pipeline_parallel/engine.py). I highly recommend taking a look at the second one, as we can easily observe the three phases of the schedule (Warm-up, One Forward One Backward, Cool-down).
 
@@ -202,6 +198,7 @@ Once we have defined how we want to split the model among several devices, we wi
 Gradient synchronization in Nanotron will be done by [`wrapping the models`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/trainer.py#L801) with the [`DistributedDataParallel`](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel) class from PyTorch. Additionally, we will create the same Dataset and DataLoader in each and every process, and with the help of the [`DistributedSampler`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/dataloader.py#L431C19-L431C37), we will divide the indices of the Dataset among the different data parallel groups.
 
 <img src="img/nanosets.png">
+<em>v</em>
 
 You may wonder why we create the same `Dataset` and `DataLoader` in all processes if only the first stage of the pipeline and the last need the inputs and the labels, respectively. Nanotron addresses this issue with [`TensorPointer`s](https://github.com/huggingface/nanotron/blob/main/src/nanotron/parallel/pipeline_parallel/tensor_pointer.py#L5), which indicate where the inputs come from and where to send the outputs in each stage of the pipeline. We will create them in the [collator](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/dataloader.py#L329), the last step before feeding data into the model, so the shard of the model on each device will get either the inputs (the first pipeline stage will get tokenized samples from the dataset), the labels (for computing the loss in the last stage of the pipeline), or a `TensorPointer` to know whether to consume data from the `DataLoader` or receive the inputs from antoher pipeline stage.
 
