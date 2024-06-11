@@ -53,7 +53,7 @@ image:
 
 Those times when it was possible to fit an entire model on a single GPU are long gone. Although in recent years we have seen VRAM on GPUs reach up to 120GB, this is still not enough to accommodate state-of-the-art models that require dozens of these GPUs. This is why techniques have emerged to deal with these immense models, capable of leveraging large infrastructures by dividing the work among thousands of GPUs.
 
-For the training of these models, there are mainly two approaches:
+For training such large models, there are mainly two approaches:
 - **[FSDP](https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel)** (PyTorch) & **[DeepSpeed](https://github.com/microsoft/DeepSpeed)** (Microsoft). These strategies shard the model layers across several devices. In order to solve the problem of the pipeline bubble (we will expand on this in [Section 3](#pp)), each device acts as an independent data parallel group, which leads to an increase in communications. This is not a problem when conducting experiments on a single node since communications are very fast, but when using multiple nodes, the performance decreases significantly. How much it decreases depends on the networking of the cluster, but generally, it is not fast enough compared to the speed at which GPUs process the data.
 
   > 🚨 There are several scaling studies of these strategies. It is important to pay attention to the networking and hardware they report and compare it with that of your cluster (with [this nccl test](https://github.com/TJ-Solergibert/MN5-Distributed-PyTorch?tab=readme-ov-file#nccl-network-benchmark), for example) to predict the performance of this strategy.
@@ -72,7 +72,7 @@ During training, we will carry out communications in the three axes of paralleli
 
 The axis that requires the most interconnection bandwidth is the tensor Parallel one (we will delve into this issue in [Section 4](#tp)). Therefore, we will always place the processes of the same tensor Parallel Group on the same node, so we will never use a TP size greater than the number of GPUs per node (Section 3.2 of [[2]](https://arxiv.org/pdf/2104.04473)). If we are unable to fit the model in a single node using tensor parallelism, we will need to divide the model across multiple nodes in the pipeline parallel dimension. The pipeline parallel size will be the smallest possible that allows us to accommodate a copy of the model, and we will use the remaining GPUs to create different copies in the data parallel dimension (Section 5.4.2 of [[2]](https://arxiv.org/pdf/2104.04473)).
 
-In Nanotron⚡️, we will first set the different sizes of each parallelism in the YAML config file (`parallelism.[tp, pp, dp]`). Then, during the initialization of the `DistributedTrainer`, we will create a [`ParallelContext`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/context.py#L12). This object will be responsible for creating and storing all the `ProcessGroups`, allowing us to access them easily and in an organized manner. Below, we show how to create a `ParallelContext` and how to use it with torch's distributed communication package.
+In Nanotron⚡️, we will first set the different sizes of each parallelism in the YAML config file (`parallelism.[tp, pp, dp]`). Then, during the initialization of the `DistributedTrainer`, we will create a [`ParallelContext`](https://github.com/huggingface/nanotron/blob/67716392ab774a863f1c2f8f73e9571b81ad80a0/src/nanotron/parallel/context.py#L12). This object will be responsible for creating and storing all the `ProcessGroups`, allowing us to access them easily and in an organized way. Below, we show how to create a `ParallelContext` and how to use it with torch's distributed communication package.
 
 ```python
 """
@@ -191,8 +191,8 @@ Tensor parallelism splits the parameters as follows:
 
     Hence, we partition the first GEMM in this column parallel fashion and split the second GEMM (`B`) along its rows so it takes the output of the GeLU layer directly without requiring any communication. The output of the second GEMM is then reduced across the tensor parallel group before passing the output to the dropout layer. This approach splits both GEMMs in the MLP block across GPUs and requires only a single all-reduce operation in the forward pass and another all-reduce in the backward pass.
 
-    <img src="img/tp_mlp.png">
-    <em>Tensor parallelism shards the layers by columns (A) and rows (B) among several devices; in this case, tensor parallel size equals 2. <b>f</b> is an identity operator in the forward pass and all reduce in the backward pass while <b>g</b> is an all reduce in the forward pass and identity in the backward pass.</em>
+<img src="img/tp_mlp.png">
+<em>Tensor parallelism shards the layers by columns (A) and rows (B) among several devices; in this case, tensor parallel size equals 2. <b>f</b> is an identity operator in the forward pass and all reduce in the backward pass while <b>g</b> is an all reduce in the forward pass and identity in the backward pass.</em>
 
 - Self-attention block: Similarly to the MLP block, in this block we will divide the `Q`, `K` & `V` matrices along their columns and parallelize the second GEMM (`B`) along its rows. As in the previous case, we perform the operations in this order to reduce synchronizations and respect nonlinear functions. This approach also requires only a single all-reduce operation in the forward pass and a single all-reduce in the backward pass.
     <img src="img/selfattention.png">
