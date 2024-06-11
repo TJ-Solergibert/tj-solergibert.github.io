@@ -1,5 +1,5 @@
 ---
-title: "3D Parallelism Unveiled: Step-by-Step with Code"
+title: "A Deep Dive into 3D Parallelism with Nanotron⚡️"
 subtitle: In this post, we will present 3D parallelism, the technology behind large-scale LLM training. We will delve into the core details of pipeline, tensor, and data parallelism with code snippets from Nanotron⚡️, a 3D parallel trainer from Hugging Face🤗
 
 # Summary for listings and search engines
@@ -190,8 +190,10 @@ Tensor parallelism splits the parameters as follows:
     `[Y1, Y2] = [GeLU(XA1), GeLU(XA2)]`
 
     Hence, we partition the first GEMM in this column parallel fashion and split the second GEMM (`B`) along its rows so it takes the output of the GeLU layer directly without requiring any communication. The output of the second GEMM is then reduced across the tensor parallel group before passing the output to the dropout layer. This approach splits both GEMMs in the MLP block across GPUs and requires only a single all-reduce operation in the forward pass and another all-reduce in the backward pass.
-    <img src="img/mlp.png">
-    <em><b>f</b> is an identity operator in the forward pass and all reduce in the backward pass while <b>g</b> is an all reduce in the forward pass and identity in the backward pass. Source: Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</em>
+
+    <img src="img/tp_mlp.png">
+    <em>Tensor parallelism shards the layers by columns (A) and rows (B) among several devices; in this case, tensor parallel size equals 2. <b>f</b> is an identity operator in the forward pass and all reduce in the backward pass while <b>g</b> is an all reduce in the forward pass and identity in the backward pass.</em>
+
 - Self-attention block: Similarly to the MLP block, in this block we will divide the `Q`, `K` & `V` matrices along their columns and parallelize the second GEMM (`B`) along its rows. As in the previous case, we perform the operations in this order to reduce synchronizations and respect nonlinear functions. This approach also requires only a single all-reduce operation in the forward pass and a single all-reduce in the backward pass.
     <img src="img/selfattention.png">
     <em><b>f</b> is an identity operator in the forward pass and all reduce in the backward pass while <b>g</b> is an all reduce in the forward pass and identity in the backward pass. Source: Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</em>
@@ -222,7 +224,7 @@ Finally, Nanotron⚡️ also incorporates the [`Zero-1 optimizer`](https://githu
 
 Throughout this post, we have covered the fundamental aspects of 3D parallelism, the technology that powers LLMs. The most important aspects of each parallelism axis are:
 
-- Tensor parallelism: When a model does not fit on a single device, we first try to divide it in the tensor parallel dimension. The performance of this method depends largely on the bandwidth between devices, so we will **NEVER** divide the model across devices of different nodes.
+- Tensor parallelism: When a model does not fit on a single device, we first try to divide it in the tensor parallel dimension. Since this method performs a large number of collective communications, its performance will largely depend on the bandwidth between GPUs, so we will **NEVER** divide the model across devices of different nodes.
 
 - Pipeline parallelism: When tensor parallelism is not enough, we divide the model among several pipeline stages. We will always try to make the division among the stages as balanced as possible. This parallelism has a significant drawback, the pipeline bubble, so we will use the less pipeline stages as possible. There are various pipeline schedules that trade memory consumption, communications and complexity.
 
